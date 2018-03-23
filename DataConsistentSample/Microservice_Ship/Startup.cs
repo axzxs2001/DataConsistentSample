@@ -5,8 +5,10 @@ using System.Threading.Tasks;
 using IntegrationEvents;
 using MassTransit;
 using Microservice_Ship.EventHandlers;
+using Microservice_Ship.Model;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -26,6 +28,8 @@ namespace Microservice_Ship
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton("server=.;database=OrderDB;uid=sa;pwd=1");
+            services.AddTransient<IShipRepository, ShipRepository>();
             StartESB(services);
             services.AddMvc();
         }
@@ -43,6 +47,10 @@ namespace Microservice_Ship
 
         void StartESB(IServiceCollection services)
         {
+            var provider = services.BuildServiceProvider();
+
+            var shipRepository = provider.GetService<IShipRepository>();
+       
             var bus = Bus.Factory.CreateUsingRabbitMq(cfg =>
             {
                 var host = cfg.Host(new Uri("rabbitmq://localhost"), hst =>
@@ -51,8 +59,8 @@ namespace Microservice_Ship
                     hst.Password("guest");
                 });
                 cfg.ReceiveEndpoint(host, "ship_order", e =>
-                {
-                    e.Consumer<ShiperOrderEventHandler>();                  
+                {                 
+                    e.Consumer(()=>new ShiperOrderEventHandler(shipRepository));                  
                 });
             });
             bus.Start();

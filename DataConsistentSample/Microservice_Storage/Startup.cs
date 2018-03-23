@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using MassTransit;
 using Microservice_Storage.EventHandlers;
+using Microservice_Storage.Model;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -25,6 +26,8 @@ namespace Microservice_Storage
   
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton("server=.;database=OrderDB;uid=sa;pwd=1");
+            services.AddSingleton<IStorageRepository, StorageRepository>();
             StartESB(services);
             services.AddMvc();
         }
@@ -42,8 +45,9 @@ namespace Microservice_Storage
 
         void StartESB(IServiceCollection services)
         {
-            var bus = Bus.Factory.CreateUsingRabbitMq(cfg =>
-            {
+            var provider = services.BuildServiceProvider();
+            var storageRepository = provider.GetService<IStorageRepository>();
+            var bus = Bus.Factory.CreateUsingRabbitMq(cfg =>            {
                 var host = cfg.Host(new Uri("rabbitmq://localhost"), hst =>
                 {
                     hst.Username("guest");
@@ -51,11 +55,10 @@ namespace Microservice_Storage
                 });
                 cfg.ReceiveEndpoint(host, "storeage_order", e =>
                 {
-                    e.Consumer<StoreageOrderEventHandler>();
+                    e.Consumer(() => new StoreageOrderEventHandler(storageRepository));
                 });
             });
             bus.Start();
-
             services.AddSingleton(bus);
 
         }

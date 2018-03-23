@@ -1,5 +1,6 @@
 ﻿using IntegrationEvents;
 using MassTransit;
+using Microservice_Storage.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,9 +10,14 @@ namespace Microservice_Storage.EventHandlers
 {
     public class StoreageOrderEventHandler : IConsumer<IOrder>
     {
+        IStorageRepository _storageRepository;
+        public StoreageOrderEventHandler(IStorageRepository storageRepository)
+        {
+            _storageRepository = storageRepository;
+        }
         public async Task Consume(ConsumeContext<IOrder> context)
         {
-            await Console.Out.WriteLineAsync($"Microservice_Storage收到订单：{Newtonsoft.Json.JsonConvert.SerializeObject(context.Message)}");
+            await _storageRepository.CreateStorage(context.Message);
         }
     }
 }

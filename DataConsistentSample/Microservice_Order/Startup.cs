@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MassTransit;
+using Microservice_Order.Model;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +25,8 @@ namespace Microservice_Order
       
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton("server=.;database=OrderDB;uid=sa;pwd=1");
+            services.AddTransient<IOrderRepository, OrderRepository>();
             StartESB(services);
             services.AddMvc();
         }
@@ -48,9 +51,7 @@ namespace Microservice_Order
                     hst.Password("guest");
                 });
 
-            });
-            //bus.Start();
-
+            }); 
             services.AddSingleton(bus);
 
         }

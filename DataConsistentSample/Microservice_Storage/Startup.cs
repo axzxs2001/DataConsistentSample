@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MassTransit;
+using Microservice_Storage.EventHandlers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -20,13 +22,14 @@ namespace Microservice_Storage
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
+  
         public void ConfigureServices(IServiceCollection services)
         {
+            StartESB(services);
             services.AddMvc();
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
             if (env.IsDevelopment())
@@ -35,6 +38,26 @@ namespace Microservice_Storage
             }
 
             app.UseMvc();
+        }
+
+        void StartESB(IServiceCollection services)
+        {
+            var bus = Bus.Factory.CreateUsingRabbitMq(cfg =>
+            {
+                var host = cfg.Host(new Uri("rabbitmq://localhost"), hst =>
+                {
+                    hst.Username("guest");
+                    hst.Password("guest");
+                });
+                cfg.ReceiveEndpoint(host, "storeage_order", e =>
+                {
+                    e.Consumer<StoreageOrderEventHandler>();
+                });
+            });
+            bus.Start();
+
+            services.AddSingleton(bus);
+
         }
     }
 }

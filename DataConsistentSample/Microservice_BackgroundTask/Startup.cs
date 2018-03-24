@@ -14,7 +14,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Quartz;
 using Quartz.Impl;
-
+using Quartz.Spi;
+using Microservice_BackgroundTask;
 
 namespace Microservice_BackgroundTask
 {
@@ -33,10 +34,16 @@ namespace Microservice_BackgroundTask
             services.AddTransient<IEventRepository, EventRepository>();
             // services.AddSingleton<OrderEventJob>();
             StartESB(services);
+
+       
+            //services.UseQuartz(typeof(SomeJob));
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+
+            //QuartzServicesUtilities.StartJob<SomeJob>();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -48,8 +55,8 @@ namespace Microservice_BackgroundTask
         {
             try
             {
-                OrderEventJob._eventRepository = app.ApplicationServices.GetService<IEventRepository>();
-                OrderEventJob._bus= app.ApplicationServices.GetService<IBusControl>();
+                OrderEventJob.SetEventRepository(app.ApplicationServices.GetService<IEventRepository>());
+                OrderEventJob.SetBus(app.ApplicationServices.GetService<IBusControl>());
                 //从工厂中获取调度程序实例
                 var props = new NameValueCollection
                 {
@@ -84,6 +91,10 @@ namespace Microservice_BackgroundTask
             }
         }
 
+
+
+
+
         void StartESB(IServiceCollection services)
         {
             var bus = Bus.Factory.CreateUsingRabbitMq(cfg =>
@@ -97,4 +108,93 @@ namespace Microservice_BackgroundTask
             services.AddSingleton(bus);
         }
     }
+
+
+    #region 测试
+    public static class AAA
+    {
+        public static void UseQuartz(this IServiceCollection services, params Type[] jobs)
+        {
+            services.AddSingleton<IJobFactory, QuartzJonFactory>();
+            foreach (var serviceDescriptor in jobs.Select(jobType => new ServiceDescriptor(jobType, jobType, ServiceLifetime.Singleton)))
+            {
+                services.Add(serviceDescriptor);
+            }
+            var schedulerFactory = new StdSchedulerFactory();
+            var scheduler = schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+            scheduler.JobFactory = services.BuildServiceProvider().GetService<IJobFactory>();
+
+            scheduler.Start();
+       
+            services.AddSingleton(scheduler);
+        }
+    }
+
+    public class QuartzJonFactory : IJobFactory
+    {
+        
+        private readonly IServiceProvider _serviceProvider;
+
+        public QuartzJonFactory(IServiceProvider serviceProvider)
+        {
+            _serviceProvider = serviceProvider;
+        }
+
+        public IJob NewJob(TriggerFiredBundle bundle, IScheduler scheduler)
+        {
+            var jobDetail = bundle.JobDetail;
+
+            var job = (IJob)_serviceProvider.GetService(jobDetail.JobType);
+            return job;
+        }
+
+        public void ReturnJob(IJob job) { }
+    }
+    public class SomeJob : IJob
+    {
+        public SomeJob(IEventRepository rrr)
+        {
+
+        }
+        Task IJob.Execute(IJobExecutionContext context)
+        {
+            Console.WriteLine("dddddddddddddddd");
+
+            return Task.CompletedTask;
+        }
+    }
+    public static class QuartzServicesUtilities
+    {
+        public async static void StartJob<TJob>()
+            where TJob : IJob
+        {
+            var jobName = typeof(TJob).FullName;
+
+            var job = JobBuilder.Create<TJob>()
+                .WithIdentity(jobName)
+                .Build();
+
+            var trigger = TriggerBuilder.Create()
+                .WithIdentity($"{jobName}.trigger")
+                .StartNow()
+                .WithSimpleSchedule(scheduleBuilder =>
+                    scheduleBuilder
+                        .WithInterval(TimeSpan.FromSeconds(3))
+                        .RepeatForever())
+                .Build();
+
+            var props = new NameValueCollection
+                {
+                    { "quartz.serializer.type", "binary" }
+                };
+            var factory = new StdSchedulerFactory(props);
+            var scheduler = await factory.GetScheduler();
+
+            //开启调度器
+            await scheduler.Start();
+
+            await scheduler.ScheduleJob(job, trigger);
+        }
+    }
+    #endregion
 }

@@ -3,15 +3,20 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27428.2015
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microservice_Order", "Microservice_Order\Microservice_Order.csproj", "{E9706FE5-5E37-4851-A303-9FE5F74F5FA4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microservice_Order", "Microservice_Order\Microservice_Order.csproj", "{E9706FE5-5E37-4851-A303-9FE5F74F5FA4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microservice_Ship", "Microservice_Ship\Microservice_Ship.csproj", "{0BA99F6C-9678-4B5D-A28D-D56D058E5A6A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microservice_Ship", "Microservice_Ship\Microservice_Ship.csproj", "{0BA99F6C-9678-4B5D-A28D-D56D058E5A6A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microservice_Storage", "Microservice_Storage\Microservice_Storage.csproj", "{6EB642C0-2498-4C87-9F82-50040762943C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microservice_Storage", "Microservice_Storage\Microservice_Storage.csproj", "{6EB642C0-2498-4C87-9F82-50040762943C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microservice_BackgroundTask", "Microservice_BackgroundTask\Microservice_BackgroundTask.csproj", "{E6546697-5C98-41F6-959B-3C18E8FBFE51}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microservice_BackgroundTask", "Microservice_BackgroundTask\Microservice_BackgroundTask.csproj", "{E6546697-5C98-41F6-959B-3C18E8FBFE51}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationEvents", "IntegrationEvents\IntegrationEvents.csproj", "{22AE21B2-176C-4A15-BD3A-CC03234F54B7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IntegrationEvents", "IntegrationEvents\IntegrationEvents.csproj", "{22AE21B2-176C-4A15-BD3A-CC03234F54B7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Doc", "Doc", "{A9CC9F96-B085-4416-B164-4F8E5C6E45B2}"
+	ProjectSection(SolutionItems) = preProject
+		Doc\script.sql = Doc\script.sql
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

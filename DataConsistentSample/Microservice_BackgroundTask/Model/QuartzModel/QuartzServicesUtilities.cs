@@ -9,7 +9,7 @@ namespace Microservice_BackgroundTask.Model
 {
     public static class QuartzServicesUtilities
     {
-        public async static void StartJob<TJob>(IScheduler scheduler)
+        public async static void StartJob<TJob>(IScheduler scheduler,TimeSpan interval)
             where TJob : IJob
         {
             var jobName = typeof(TJob).FullName;
@@ -23,7 +23,7 @@ namespace Microservice_BackgroundTask.Model
                 .StartNow()
                 .WithSimpleSchedule(scheduleBuilder =>
                     scheduleBuilder
-                        .WithInterval(TimeSpan.FromSeconds(3))
+                        .WithInterval(interval)
                         .RepeatForever())
                 .Build();
 

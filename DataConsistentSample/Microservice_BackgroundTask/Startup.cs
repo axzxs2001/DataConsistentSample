@@ -39,8 +39,8 @@ namespace Microservice_BackgroundTask
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, IScheduler scheduler)
         {
-
-            QuartzServicesUtilities.StartJob<OrderEventJob>(scheduler);
+            //每隔30称执行一次OrderEventJob的Execute方法
+            QuartzServicesUtilities.StartJob<OrderEventJob>(scheduler,TimeSpan.FromSeconds(30));
            
         }
 

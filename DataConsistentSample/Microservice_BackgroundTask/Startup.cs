@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using MassTransit;
 using Microservice_BackgroundTask.Model;
-using Microservice_Order.Model;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -16,6 +16,8 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
 using Microservice_BackgroundTask;
+using MassTransit.ExtensionsDependencyInjectionIntegration;
+using Microservice_BackgroundTask.EventHandlers;
 
 namespace Microservice_BackgroundTask
 {
@@ -33,31 +35,49 @@ namespace Microservice_BackgroundTask
             services.AddSingleton("server=.;database=OrderDB;uid=sa;pwd=1");
             services.AddTransient<IEventRepository, EventRepository>();
 
-            StartESB(services);
             services.UseQuartz(typeof(OrderEventJob));
-        }
-
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IScheduler scheduler)
-        {
-            //每隔30称执行一次OrderEventJob的Execute方法
-            QuartzServicesUtilities.StartJob<OrderEventJob>(scheduler,TimeSpan.FromSeconds(30));
-           
-        }
-
-        void StartESB(IServiceCollection services)
-        {
-            var bus = Bus.Factory.CreateUsingRabbitMq(cfg =>
+            services.AddMassTransit(c =>
             {
-                var host = cfg.Host(new Uri("rabbitmq://localhost"), hst =>
+                c.AddConsumer<OrderEventHandler>();
+            });
+            services.AddScoped<OrderEventHandler>();
+            services.AddMvc();
+        }
+
+        public static IBusControl BusControl { get; private set; }
+        public void Configure(IApplicationBuilder app, IServiceProvider serviceProvider, IHostingEnvironment env, IApplicationLifetime applicationLifetime, IScheduler scheduler)
+        {
+            BusControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
+            {
+                var host = cfg.Host(new Uri("rabbitmq://localhost"), h =>
                 {
-                    hst.Username("guest");
-                    hst.Password("guest");
+                    h.Username("guest");
+                    h.Password("guest");
+                });
+
+                cfg.ReceiveEndpoint(host, "order_event", e =>
+                {
+                    e.LoadFrom(serviceProvider);
                 });
             });
-            services.AddSingleton(bus);
+
+            applicationLifetime.ApplicationStarted.Register(BusControl.Start);
+            applicationLifetime.ApplicationStopped.Register(BusControl.Stop);
+
+            //每隔30称执行一次OrderEventJob的Execute方法
+            QuartzServicesUtilities.StartJob<OrderEventJob>(scheduler, TimeSpan.FromSeconds(30));
+            app.UseMvc();
+
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
         }
+
+
+
     }
 
 
-  
+
 }

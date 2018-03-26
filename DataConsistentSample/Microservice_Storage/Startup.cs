@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MassTransit;
+using MassTransit.ExtensionsDependencyInjectionIntegration;
 using Microservice_Storage.EventHandlers;
 using Microservice_Storage.Model;
 using Microsoft.AspNetCore.Builder;
@@ -28,39 +29,41 @@ namespace Microservice_Storage
         {
             services.AddSingleton("server=.;database=OrderDB;uid=sa;pwd=1");
             services.AddSingleton<IStorageRepository, StorageRepository>();
-            StartESB(services);
+            services.AddMassTransit(c =>
+            {
+                c.AddConsumer<StoreageOrderEventHandler>();
+            });
+            services.AddScoped<StoreageOrderEventHandler>();
             services.AddMvc();
         }
 
-
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public static IBusControl BusControl { get; private set; }
+        public void Configure(IApplicationBuilder app, IServiceProvider serviceProvider, IHostingEnvironment env, IApplicationLifetime applicationLifetime)
         {
-            if (env.IsDevelopment())
+            BusControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
             {
-                app.UseDeveloperExceptionPage();
-            }
-
-            app.UseMvc();
-        }
-
-        void StartESB(IServiceCollection services)
-        {
-            var provider = services.BuildServiceProvider();
-            var storageRepository = provider.GetService<IStorageRepository>();
-            var bus = Bus.Factory.CreateUsingRabbitMq(cfg =>            {
                 var host = cfg.Host(new Uri("rabbitmq://localhost"), hst =>
                 {
                     hst.Username("guest");
                     hst.Password("guest");
                 });
+
                 cfg.ReceiveEndpoint(host, "storeage_order", e =>
                 {
-                    e.Consumer(() => new StoreageOrderEventHandler(storageRepository));
+                    e.LoadFrom(serviceProvider);
                 });
             });
-            bus.Start();
-            services.AddSingleton(bus);
 
+            applicationLifetime.ApplicationStarted.Register(BusControl.Start);
+            applicationLifetime.ApplicationStopped.Register(BusControl.Stop);
+
+            app.UseMvc();
+
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
         }
+      
     }
 }

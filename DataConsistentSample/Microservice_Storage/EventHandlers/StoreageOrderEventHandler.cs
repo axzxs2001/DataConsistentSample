@@ -17,7 +17,13 @@ namespace Microservice_Storage.EventHandlers
         }
         public async Task Consume(ConsumeContext<IOrder> context)
         {
-            await _storageRepository.CreateStorage(context.Message);
+            var order = context.Message;
+            var result = await _storageRepository.CreateStorage(order);
+            if (result)
+            {
+                IOrderEventEntity orderEventEntity = new OrderEventEntity { OrderID = order.ID, EventType = "CreateOrder", StorageStatus = 2 };
+                await Startup.BusControl.Publish(orderEventEntity);
+            }
         }
     }
 }

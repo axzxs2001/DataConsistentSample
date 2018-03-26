@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Microservice_BackgroundTask.Model
+namespace IntegrationEvents
 {
-    public class EventEntity
+    public class OrderEventEntity:IOrderEventEntity
     {
         public int ID { get; set; }
         public string EventType { get; set; }

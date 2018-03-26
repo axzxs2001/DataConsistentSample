@@ -2,8 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Autofac;
+using Autofac.Extensions.DependencyInjection;
 using IntegrationEvents;
 using MassTransit;
+using MassTransit.ExtensionsDependencyInjectionIntegration;
+using MassTransit.Util;
 using Microservice_Ship.EventHandlers;
 using Microservice_Ship.Model;
 using Microsoft.AspNetCore.Builder;
@@ -25,48 +29,48 @@ namespace Microservice_Ship
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
+
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton("server=.;database=OrderDB;uid=sa;pwd=1");
             services.AddTransient<IShipRepository, ShipRepository>();
-            StartESB(services);
+
+            services.AddMassTransit(c =>
+            {
+                c.AddConsumer<ShiperOrderEventHandler>();
+            });
+            services.AddScoped<ShiperOrderEventHandler>();
             services.AddMvc();
         }
-
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public static  IBusControl BusControl { get; private set; }
+        public void Configure(IApplicationBuilder app, IServiceProvider serviceProvider, IHostingEnvironment env, IApplicationLifetime applicationLifetime)
         {
+            BusControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
+           {
+               var host = cfg.Host(new Uri("rabbitmq://localhost"), hst =>
+               {
+                   hst.Username("guest");
+                   hst.Password("guest");
+               });
+
+               cfg.ReceiveEndpoint(host, "shiper_order", e =>
+               {
+                   e.LoadFrom(serviceProvider);
+               });
+           });
+
+            applicationLifetime.ApplicationStarted.Register(BusControl.Start);
+            applicationLifetime.ApplicationStopped.Register(BusControl.Stop);
+
+            app.UseMvc();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
-
-            app.UseMvc();
         }
 
-        void StartESB(IServiceCollection services)
-        {
-            var provider = services.BuildServiceProvider();
-
-            var shipRepository = provider.GetService<IShipRepository>();
-       
-            var bus = Bus.Factory.CreateUsingRabbitMq(cfg =>
-            {
-                var host = cfg.Host(new Uri("rabbitmq://localhost"), hst =>
-                {
-                    hst.Username("guest");
-                    hst.Password("guest");
-                });
-                cfg.ReceiveEndpoint(host, "ship_order", e =>
-                {                 
-                    e.Consumer(()=>new ShiperOrderEventHandler(shipRepository));                  
-                });
-            });
-            bus.Start();
-
-            services.AddSingleton(bus);
-
-        }
     }
+
 }
+

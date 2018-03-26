@@ -26,20 +26,14 @@ namespace Microservice_Ship.Model
                 var list = await conn.QueryAsync<int>(selectSql, param: new { OrderID = order.ID, EventType = "CreateOrder" });
                 if (list != null && list.Count() > 0 && list.ToList()[0] == 1)
                 {
-                    //todo 这里可以再向运单表生成数据,用事务生成运单和更新Events表
+                    //todo 这里可以再向运单表生成数据
                     Console.WriteLine($"运单表中添加数据：{Newtonsoft.Json.JsonConvert.SerializeObject(order)}");
-                    Console.WriteLine($"更新Events表中运单传送状态");
-                    var sql = @"UPDATE [dbo].[Events]
-   SET [ShipStatus] =2      
- WHERE [OrderID]=@OrderID and EventType=@EventType";
 
-                    var result = await conn.ExecuteAsync(sql, param: new { OrderID = order.ID, EventType = "CreateOrder" }) > 0;
-
-                    return result;
+                    return true;
                 }
                 else
                 {
-                    return true;
+                    return false;
                 }
             }
         }

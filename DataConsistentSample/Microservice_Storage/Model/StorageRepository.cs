@@ -17,15 +17,6 @@ namespace Microservice_Storage.Model
         }
         public async Task<bool> CreateStorage(IOrder order)
         {
- //           using (var conn = new SqlConnection(_connectionString))
- //           {
- //               var sql = @"UPDATE [dbo].[Events]
- //  SET [StorageStatus] =2      
- //WHERE [OrderID]=@OrderID and EventType=@EventType";
-
- //               var result = await conn.ExecuteAsync(sql, param: new { OrderID = orderID, EventType = "CreateOrder" }) > 0;
- //               return result;
- //           }
 
             using (var conn = new SqlConnection(_connectionString))
             {
@@ -36,20 +27,14 @@ namespace Microservice_Storage.Model
                 var list = await conn.QueryAsync<int>(selectSql, param: new { OrderID = order.ID, EventType = "CreateOrder" });
                 if (list != null && list.Count() > 0 && list.ToList()[0] == 1)
                 {
-                    //todo 这里可以再向库存表生成数据,用事务生成库存和更新Events表
+                    //todo 这里可以再向库存表生成数据
                     Console.WriteLine($"库存表中添加数据：{Newtonsoft.Json.JsonConvert.SerializeObject(order)}");
-                    Console.WriteLine($"更新Events表中库存传送状态");
-                    var sql = @"UPDATE [dbo].[Events]
-   SET [StorageStatus] =2      
- WHERE [OrderID]=@OrderID and EventType=@EventType";
 
-                    var result = await conn.ExecuteAsync(sql, param: new { OrderID = order.ID, EventType = "CreateOrder" }) > 0;
-
-                    return result;
+                    return true;
                 }
                 else
                 {
-                    return true;
+                    return false;
                 }
             }
         }

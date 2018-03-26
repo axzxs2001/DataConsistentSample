@@ -1,6 +1,5 @@
 ﻿using IntegrationEvents;
 using MassTransit;
-using Microservice_Order.Model;
 using Quartz;
 using System;
 using System.Collections.Generic;
@@ -13,10 +12,10 @@ namespace Microservice_BackgroundTask.Model
     {
         IEventRepository _eventRepository;
         IBusControl _bus;
-        public OrderEventJob(IEventRepository eventRepository, IBusControl bus)
+        public OrderEventJob(IEventRepository eventRepository)
         {
             _eventRepository = eventRepository;
-            _bus = bus;
+            _bus =Startup.BusControl;
         }
      
         public Task Execute(IJobExecutionContext context)
@@ -24,7 +23,7 @@ namespace Microservice_BackgroundTask.Model
             var events = _eventRepository.GetEvent().GetAwaiter().GetResult();
             foreach (var eventItem in events)
             {
-                var order = Newtonsoft.Json.JsonConvert.DeserializeObject<Order>(eventItem.EntityJson);
+                IOrder order = Newtonsoft.Json.JsonConvert.DeserializeObject<Order>(eventItem.EntityJson);
                 _bus.Publish(order);
             }
 

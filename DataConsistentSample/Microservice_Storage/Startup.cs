@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using GreenPipes;
 using MassTransit;
 using MassTransit.ExtensionsDependencyInjectionIntegration;
 using Microservice_Storage.EventHandlers;
@@ -50,6 +51,27 @@ namespace Microservice_Storage
 
                 cfg.ReceiveEndpoint(host, "storeage_order", e =>
                 {
+                    //重试
+                    e.UseRetry(ret =>
+                    {
+                        //每隔10秒试一闪，共试3次
+                        ret.Interval(6, TimeSpan.FromSeconds(10));
+                    });
+                    //限流 100秒内限1000千次请求
+                    e.UseRateLimit(1000, TimeSpan.FromSeconds(100));
+                    //熔断
+                    e.UseCircuitBreaker(cb =>
+                    {
+                        //跟踪周期
+                        cb.TrackingPeriod = TimeSpan.FromMinutes(1);
+                        //成功/失败的比例，15%，会打开熔断器
+                        cb.TripThreshold = 15;
+                        //至少请求数字，少于10不启用熔断器
+                        cb.ActiveThreshold = 5;
+                        //断路后与再次偿试的时间间隔
+                        cb.ResetInterval = TimeSpan.FromMinutes(5);
+
+                    });
                     e.LoadFrom(serviceProvider);
                 });
             });

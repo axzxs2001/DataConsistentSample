@@ -46,7 +46,7 @@ namespace Microservice_BackgroundTask.Model
                 sql = sql.TrimEnd(',') + " WHERE [OrderID]=@OrderID and EventType=@EventType";
 
                 Console.WriteLine("----------------------------");
-                Console.WriteLine(sql);
+                Console.WriteLine(sql.Replace("@OrderID",$"'{orderEvent.OrderID}'").Replace("@EventType", $"'{orderEvent.EventType}'"));
                 Console.WriteLine("----------------------------");
                 var result = await conn.ExecuteAsync(sql, param: new { orderEvent.OrderID, orderEvent.EventType }) > 0;
                 return result;
